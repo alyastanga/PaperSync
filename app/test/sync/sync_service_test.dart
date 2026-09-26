@@ -8,6 +8,7 @@ import 'package:papersync/storage/schema.dart';
 import 'package:papersync/storage/sync_ledger.dart';
 import 'package:papersync/sync/auth.dart';
 import 'package:papersync/sync/failure.dart';
+import 'package:papersync/sync/keyset.dart';
 import 'package:papersync/sync/remote.dart';
 import 'package:papersync/sync/sync_service.dart';
 
@@ -107,7 +108,10 @@ void main() {
     ];
     final ok = await _service(store, remote).run();
     expect(ok, isA<SyncIdle>());
-    expect(await store.cursorFor(SyncTables.notebooks), when);
+    expect(
+      await store.cursorFor(SyncTables.notebooks),
+      SyncCursor(updatedAt: when, id: _notebookId),
+    );
     expect(store.notebookRow(_notebookId)!.name, 'From cloud');
     await store.adoptUser(_user);
     expect(store.current.single.name, 'From cloud');
@@ -200,6 +204,104 @@ void main() {
     expect(auth.refreshes, 1);
     expect(remote.notebooks, hasLength(1));
   });
+
+  test('a full page does not skip strokes that share its timestamp', () async {
+    final store = _store();
+    final remote = _FakeRemote();
+    await store.createNotebook(
+      _notebook(
+        page: NotebookPage(
+          id: _pageId,
+          notebookId: _notebookId,
+          pageIndex: 1,
+          strokes: const [],
+          createdAt: DateTime.utc(2026, 9, 1),
+        ),
+      ),
+      ownerId: _user,
+    );
+    // Three upload batches. Each batch is one transaction, so every stroke
+    // in it has the same server updated_at. 500 is the pull page size, so
+    // the first page ends inside the third batch.
+    const count = 600;
+    remote.pulledStrokes = [
+      for (var i = 0; i < count; i++)
+        _remoteStroke(
+          id: _batchId(i),
+          updatedAt: DateTime.utc(2026, 9, 26, 12, i ~/ 200),
+        ),
+    ];
+
+    final status = await _service(store, remote).run();
+    expect(status, isA<SyncIdle>());
+    await store.adoptUser(_user);
+    expect(store.current.single.pages.single.strokes, hasLength(count));
+    expect(remote.strokePulls, hasLength(2));
+    expect(remote.strokePulls[1].after, DateTime.utc(2026, 9, 26, 12, 2));
+    expect(remote.strokePulls[1].afterId, _batchId(499));
+    expect(
+      await store.cursorFor(SyncTables.strokes),
+      SyncCursor(
+        updatedAt: DateTime.utc(2026, 9, 26, 12, 2),
+        id: _batchId(count - 1),
+      ),
+    );
+  });
+
+  test(
+    'a timestamp-only cursor still reads the rows at that instant',
+    () async {
+      final store = _store();
+      final remote = _FakeRemote();
+      final tied = DateTime.utc(2026, 9, 26, 12, 2);
+      await store.createNotebook(
+        _notebook(
+          page: NotebookPage(
+            id: _pageId,
+            notebookId: _notebookId,
+            pageIndex: 1,
+            strokes: const [],
+            createdAt: DateTime.utc(2026, 9, 1),
+          ),
+        ),
+        ownerId: _user,
+      );
+      await store.setCursor(SyncTables.strokes, SyncCursor(updatedAt: tied));
+      remote.pulledStrokes = [
+        _remoteStroke(
+          id: _batchId(0),
+          updatedAt: tied.subtract(const Duration(seconds: 1)),
+        ),
+        for (var i = 1; i <= 3; i++)
+          _remoteStroke(id: _batchId(i), updatedAt: tied),
+      ];
+
+      final status = await _service(store, remote).run();
+      expect(status, isA<SyncIdle>());
+      await store.adoptUser(_user);
+      expect(
+        store.current.single.pages.single.strokes.map((stroke) => stroke.id),
+        [_batchId(1), _batchId(2), _batchId(3)],
+      );
+      expect(remote.strokePulls.first.afterId, isNull);
+    },
+  );
+}
+
+StrokeSyncRow _remoteStroke({required String id, required DateTime updatedAt}) {
+  return StrokeSyncRow(
+    id: id,
+    pageId: _pageId,
+    colorArgb: 0xFF111111,
+    width: 1,
+    version: 1,
+    createdAt: updatedAt,
+    updatedAt: updatedAt,
+    syncState: SyncState.synced,
+    points: Uint8List(0),
+    timeOriginMs: 0,
+    ownerId: _user,
+  );
 }
 
 MemoryNotebookStore _store() => MemoryNotebookStore();
@@ -292,6 +394,8 @@ class _FakeRemote implements NotebookRemote {
   var upsertCalls = 0;
   Future<void> Function()? beforeNotebookAck;
   List<NotebookSyncRow> pulledNotebooks = const [];
+  List<StrokeSyncRow> pulledStrokes = const [];
+  final strokePulls = <({DateTime? after, String? afterId})>[];
 
   @override
   Future<void> upsertNotebooks(List<NotebookSyncRow> rows) async {
@@ -332,6 +436,7 @@ class _FakeRemote implements NotebookRemote {
   @override
   Future<List<NotebookSyncRow>> pullNotebooks({
     DateTime? after,
+    String? afterId,
     int limit = 500,
   }) async {
     final rows = pulledNotebooks;
@@ -342,6 +447,7 @@ class _FakeRemote implements NotebookRemote {
   @override
   Future<List<PageSyncRow>> pullPages({
     DateTime? after,
+    String? afterId,
     int limit = 500,
   }) async {
     return const [];
@@ -350,8 +456,27 @@ class _FakeRemote implements NotebookRemote {
   @override
   Future<List<StrokeSyncRow>> pullStrokes({
     DateTime? after,
+    String? afterId,
     int limit = 500,
   }) async {
-    return const [];
+    strokePulls.add((after: after, afterId: afterId));
+    final rows = [...pulledStrokes]
+      ..sort((a, b) {
+        final byTime = a.updatedAt.compareTo(b.updatedAt);
+        if (byTime != 0) return byTime;
+        return a.id.compareTo(b.id);
+      });
+    final page = [
+      for (final row in rows)
+        if (isAfterSyncCursor(
+          updatedAt: row.updatedAt,
+          id: row.id,
+          after: after,
+          afterId: afterId,
+        ))
+          row,
+    ];
+    if (page.length <= limit) return page;
+    return page.sublist(0, limit);
   }
 }

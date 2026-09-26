@@ -12,6 +12,10 @@ import 'remote.dart';
 ///
 /// One run at a time. A push is safe to retry: ids are client UUIDs, and a
 /// row is marked synced only when its version is still the one that was sent.
+///
+/// The pull cursor is the last row's server `updated_at` and id. Rows from
+/// one upsert share `updated_at`, so a time-only cursor would skip the rest
+/// of that batch when a page ends in the middle of it.
 class SyncService {
   SyncService({
     required this.ledger,
@@ -176,7 +180,13 @@ class SyncService {
     while (true) {
       if (++guard > _maxPasses) throw const ServerError();
       final cursor = await ledger.cursorFor(SyncTables.notebooks);
-      final page = await _call(remote.pullNotebooks(after: cursor));
+      final page = await _call(
+        remote.pullNotebooks(
+          after: cursor?.updatedAt,
+          afterId: cursor?.id,
+          limit: _pageSize,
+        ),
+      );
       if (page.isEmpty) return;
       for (final row in page) {
         final local = ledger.notebookRow(row.id);
@@ -191,7 +201,11 @@ class SyncService {
           await ledger.applyNotebook(row);
         }
       }
-      await ledger.setCursor(SyncTables.notebooks, page.last.updatedAt);
+      final last = page.last;
+      await ledger.setCursor(
+        SyncTables.notebooks,
+        SyncCursor(updatedAt: last.updatedAt, id: last.id),
+      );
       if (page.length < _pageSize) return;
     }
   }
@@ -201,7 +215,13 @@ class SyncService {
     while (true) {
       if (++guard > _maxPasses) throw const ServerError();
       final cursor = await ledger.cursorFor(SyncTables.pages);
-      final page = await _call(remote.pullPages(after: cursor));
+      final page = await _call(
+        remote.pullPages(
+          after: cursor?.updatedAt,
+          afterId: cursor?.id,
+          limit: _pageSize,
+        ),
+      );
       if (page.isEmpty) return;
       for (final row in page) {
         final local = ledger.pageRow(row.id);
@@ -216,7 +236,11 @@ class SyncService {
           await ledger.applyPage(row);
         }
       }
-      await ledger.setCursor(SyncTables.pages, page.last.updatedAt);
+      final last = page.last;
+      await ledger.setCursor(
+        SyncTables.pages,
+        SyncCursor(updatedAt: last.updatedAt, id: last.id),
+      );
       if (page.length < _pageSize) return;
     }
   }
@@ -226,7 +250,13 @@ class SyncService {
     while (true) {
       if (++guard > _maxPasses) throw const ServerError();
       final cursor = await ledger.cursorFor(SyncTables.strokes);
-      final page = await _call(remote.pullStrokes(after: cursor));
+      final page = await _call(
+        remote.pullStrokes(
+          after: cursor?.updatedAt,
+          afterId: cursor?.id,
+          limit: _pageSize,
+        ),
+      );
       if (page.isEmpty) return;
       for (final row in page) {
         final local = ledger.strokeRow(row.id);
@@ -241,7 +271,11 @@ class SyncService {
           await ledger.applyStroke(row);
         }
       }
-      await ledger.setCursor(SyncTables.strokes, page.last.updatedAt);
+      final last = page.last;
+      await ledger.setCursor(
+        SyncTables.strokes,
+        SyncCursor(updatedAt: last.updatedAt, id: last.id),
+      );
       if (page.length < _pageSize) return;
     }
   }
