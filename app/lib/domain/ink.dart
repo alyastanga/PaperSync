@@ -206,9 +206,17 @@ class NotebookPage {
     this.recognizedText = '',
     List<String> markers = const [],
     this.syncState = SyncState.pending,
+    DateTime? updatedAt,
+    this.version = 1,
+    this.deletedAt,
   }) : strokes = List<Stroke>.unmodifiable(strokes),
        markers = List<String>.unmodifiable(markers),
-       capturedAt = capturedAt ?? createdAt;
+       capturedAt = capturedAt ?? createdAt,
+       updatedAt = updatedAt ?? createdAt {
+    if (version < 1) {
+      throw ArgumentError.value(version, 'version', 'must be >= 1');
+    }
+  }
 
   final String id;
   final String notebookId;
@@ -222,6 +230,11 @@ class NotebookPage {
   /// Short notes written onto the page, such as "3 samples lost".
   final List<String> markers;
   final SyncState syncState;
+  final DateTime updatedAt;
+  final int version;
+  final DateTime? deletedAt;
+
+  bool get isDeleted => deletedAt != null;
 
   List<Stroke> get visibleStrokes => List<Stroke>.unmodifiable(
     strokes.where((stroke) => stroke.deletedAt == null),
@@ -233,6 +246,9 @@ class NotebookPage {
     List<String>? markers,
     PaperRect? paperRect,
     DateTime? capturedAt,
+    DateTime? updatedAt,
+    int? version,
+    DateTime? deletedAt,
     SyncState? syncState,
   }) {
     return NotebookPage(
@@ -245,6 +261,9 @@ class NotebookPage {
       paperRect: paperRect ?? this.paperRect,
       recognizedText: recognizedText ?? this.recognizedText,
       markers: markers ?? this.markers,
+      updatedAt: updatedAt ?? this.updatedAt,
+      version: version ?? this.version,
+      deletedAt: deletedAt ?? this.deletedAt,
       syncState: syncState ?? this.syncState,
     );
   }
@@ -262,6 +281,9 @@ class NotebookPage {
         other.paperRect == paperRect &&
         other.recognizedText == recognizedText &&
         _listEquals(other.markers, markers) &&
+        other.updatedAt == updatedAt &&
+        other.version == version &&
+        other.deletedAt == deletedAt &&
         other.syncState == syncState;
   }
 
@@ -276,6 +298,9 @@ class NotebookPage {
     paperRect,
     recognizedText,
     Object.hashAll(markers),
+    updatedAt,
+    version,
+    deletedAt,
     syncState,
   );
 }
@@ -290,9 +315,14 @@ class Notebook {
     DateTime? updatedAt,
     this.deletedAt,
     this.syncState = SyncState.pending,
+    this.version = 1,
   }) : name = _checkedName(name),
        pages = List<NotebookPage>.unmodifiable(pages),
-       updatedAt = updatedAt ?? _latestActivity(createdAt, pages);
+       updatedAt = updatedAt ?? _latestActivity(createdAt, pages) {
+    if (version < 1) {
+      throw ArgumentError.value(version, 'version', 'must be >= 1');
+    }
+  }
 
   final String id;
   final String name;
@@ -302,6 +332,9 @@ class Notebook {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final SyncState syncState;
+  final int version;
+
+  bool get isDeleted => deletedAt != null;
 
   DateTime get latestActivity => _latestActivity(createdAt, pages);
 
@@ -312,6 +345,7 @@ class Notebook {
     DateTime? updatedAt,
     DateTime? deletedAt,
     SyncState? syncState,
+    int? version,
   }) {
     final nextPages = pages ?? this.pages;
     return Notebook(
@@ -327,6 +361,7 @@ class Notebook {
               : this.updatedAt),
       deletedAt: deletedAt ?? this.deletedAt,
       syncState: syncState ?? this.syncState,
+      version: version ?? this.version,
     );
   }
 
@@ -341,7 +376,8 @@ class Notebook {
         other.createdAt == createdAt &&
         other.updatedAt == updatedAt &&
         other.deletedAt == deletedAt &&
-        other.syncState == syncState;
+        other.syncState == syncState &&
+        other.version == version;
   }
 
   @override
@@ -354,6 +390,7 @@ class Notebook {
     updatedAt,
     deletedAt,
     syncState,
+    version,
   );
 }
 

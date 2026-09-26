@@ -56,6 +56,7 @@ class NotebookAdapter extends TypeAdapter<StoredNotebook> {
       syncState: _int(fields[NotebookFields.syncState]),
       ownerId: _optionalString(fields[NotebookFields.ownerId]),
       clockFlags: _int(fields[NotebookFields.clockFlags]),
+      version: _int(fields[NotebookFields.version], fallback: 1),
     );
   }
 
@@ -71,6 +72,7 @@ class NotebookAdapter extends TypeAdapter<StoredNotebook> {
       NotebookFields.syncState: obj.syncState,
       if (obj.ownerId != null) NotebookFields.ownerId: obj.ownerId!,
       NotebookFields.clockFlags: obj.clockFlags,
+      NotebookFields.version: obj.version,
     });
   }
 }
@@ -98,6 +100,8 @@ class PageAdapter extends TypeAdapter<StoredPage> {
       ownerId: _optionalString(fields[PageFields.ownerId]),
       deletedAtUs: _optionalInt(fields[PageFields.deletedAt]),
       clockFlags: _int(fields[PageFields.clockFlags]),
+      version: _int(fields[PageFields.version], fallback: 1),
+      updatedAtUs: _int(fields[PageFields.updatedAt]),
     );
   }
 
@@ -119,6 +123,8 @@ class PageAdapter extends TypeAdapter<StoredPage> {
       if (obj.ownerId != null) PageFields.ownerId: obj.ownerId!,
       if (obj.deletedAtUs != null) PageFields.deletedAt: obj.deletedAtUs!,
       PageFields.clockFlags: obj.clockFlags,
+      PageFields.version: obj.version,
+      if (obj.updatedAtUs != 0) PageFields.updatedAt: obj.updatedAtUs,
     });
   }
 }

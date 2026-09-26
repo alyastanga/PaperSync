@@ -31,6 +31,7 @@ class StoredNotebook {
     this.deletedAtUs,
     this.ownerId,
     this.clockFlags = 0,
+    this.version = 1,
   });
 
   final String id;
@@ -42,6 +43,7 @@ class StoredNotebook {
   final int syncState;
   final String? ownerId;
   final int clockFlags;
+  final int version;
 
   static StoredNotebook fromDomain(Notebook notebook, {String? ownerId}) {
     return StoredNotebook(
@@ -58,6 +60,22 @@ class StoredNotebook {
         updated: notebook.updatedAt,
         deleted: notebook.deletedAt,
       ),
+      version: notebook.version,
+    );
+  }
+
+  StoredNotebook copyWith({int? syncState, String? ownerId, int? version}) {
+    return StoredNotebook(
+      id: id,
+      name: name,
+      inkColorArgb: inkColorArgb,
+      createdAtUs: createdAtUs,
+      updatedAtUs: updatedAtUs,
+      deletedAtUs: deletedAtUs,
+      syncState: syncState ?? this.syncState,
+      ownerId: ownerId ?? this.ownerId,
+      clockFlags: clockFlags,
+      version: version ?? this.version,
     );
   }
 }
@@ -79,6 +97,8 @@ class StoredPage {
     this.deletedAtUs,
     this.ownerId,
     this.clockFlags = 0,
+    this.version = 1,
+    this.updatedAtUs = 0,
   });
 
   final String id;
@@ -96,6 +116,8 @@ class StoredPage {
   final int syncState;
   final String? ownerId;
   final int clockFlags;
+  final int version;
+  final int updatedAtUs;
 
   static StoredPage fromDomain(
     NotebookPage page, {
@@ -119,12 +141,22 @@ class StoredPage {
       ownerId: ownerId,
       clockFlags: clockFlagsFor(
         created: page.createdAt,
+        updated: page.updatedAt,
         captured: page.capturedAt,
+        deleted: page.deletedAt,
       ),
+      version: page.version,
+      updatedAtUs: page.updatedAt.microsecondsSinceEpoch,
     );
   }
 
-  StoredPage copyWith({int? deletedAtUs, int? syncState}) {
+  StoredPage copyWith({
+    int? deletedAtUs,
+    int? syncState,
+    String? ownerId,
+    int? version,
+    int? updatedAtUs,
+  }) {
     return StoredPage(
       id: id,
       notebookId: notebookId,
@@ -139,8 +171,10 @@ class StoredPage {
       markers: markers,
       deletedAtUs: deletedAtUs ?? this.deletedAtUs,
       syncState: syncState ?? this.syncState,
-      ownerId: ownerId,
+      ownerId: ownerId ?? this.ownerId,
       clockFlags: clockFlags,
+      version: version ?? this.version,
+      updatedAtUs: updatedAtUs ?? this.updatedAtUs,
     );
   }
 }

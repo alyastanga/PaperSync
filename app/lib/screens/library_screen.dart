@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/ink_models.dart';
 import '../state/app_controller.dart';
+import '../state/cloud.dart';
 import '../state/notebook_store_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_top_bar.dart';
@@ -22,6 +23,7 @@ class LibraryScreen extends ConsumerWidget {
     final model = ref.watch(appControllerProvider);
     final controller = ref.read(appControllerProvider.notifier);
     final notice = ref.watch(storageNoticeProvider);
+    final backup = ref.watch(backupNoticeProvider);
 
     return Scaffold(
       appBar: AppTopBar(
@@ -46,6 +48,16 @@ class LibraryScreen extends ConsumerWidget {
               child: Text(
                 notice,
                 key: const Key('storage-notice'),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: context.colors.danger),
+              ),
+            ),
+          if (backup != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              child: Text(
+                backup,
+                key: const Key('backup-notice'),
                 style: Theme.of(context).textTheme.bodyMedium
                     ?.copyWith(color: context.colors.danger),
               ),

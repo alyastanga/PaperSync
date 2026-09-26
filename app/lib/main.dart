@@ -5,11 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/sample_notebooks.dart';
+import 'platform/cloud_config.dart';
 import 'platform/secure_key_store.dart';
+import 'platform/secure_session_storage.dart';
+import 'platform/supabase_auth.dart';
+import 'platform/supabase_remote.dart';
 import 'screens/library_screen.dart';
 import 'state/app_controller.dart';
+import 'state/cloud.dart';
 import 'state/notebook_store_provider.dart';
 import 'storage/checkpoint_scheduler.dart';
 import 'storage/key_store.dart';
@@ -22,15 +28,29 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SemanticsBinding.instance.ensureSemantics();
   final session = await _openStorage();
-  runApp(
-    ProviderScope(
-      overrides: [
-        notebookStoreProvider.overrideWithValue(session.store),
-        storageNoticeProvider.overrideWithValue(session.notice),
-      ],
-      child: const PaperSyncApp(),
-    ),
-  );
+  final overrides = <Override>[
+    notebookStoreProvider.overrideWithValue(session.store),
+    storageNoticeProvider.overrideWithValue(session.notice),
+  ];
+  final config = CloudConfig.fromEnvironment;
+  if (config.enabled) {
+    await Supabase.initialize(
+      url: config.url,
+      publishableKey: config.anonKey,
+      authOptions: const FlutterAuthClientOptions(
+        localStorage: SecureSessionStorage(),
+        pkceAsyncStorage: SecureGotrueStorage(),
+      ),
+    );
+    final client = Supabase.instance.client;
+    overrides.add(
+      paperSyncAuthProvider.overrideWithValue(SupabasePaperSyncAuth(client)),
+    );
+    overrides.add(
+      notebookRemoteProvider.overrideWithValue(SupabaseNotebookRemote(client)),
+    );
+  }
+  runApp(ProviderScope(overrides: overrides, child: const PaperSyncApp()));
 }
 
 Future<StorageSession> _openStorage() async {
@@ -99,12 +119,16 @@ class _HomeState extends ConsumerState<_Home> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(syncCoordinatorProvider).onResume();
+    }
     if (!flushesCheckpoint(state.name)) return;
     unawaited(ref.read(appControllerProvider.notifier).flushOpenStroke());
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(syncCoordinatorProvider);
     return const LibraryScreen();
   }
 }

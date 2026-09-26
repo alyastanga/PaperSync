@@ -34,6 +34,13 @@ void main() {
   test('storage imports only domain', () {
     expect(_storageViolations(), isEmpty);
   });
+
+  test('sync imports only domain and storage', () {
+    expect(
+      _layerViolations('sync', const ['sync', 'domain', 'storage']),
+      isEmpty,
+    );
+  });
 }
 
 List<String> _storageViolations() {

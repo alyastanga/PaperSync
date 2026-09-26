@@ -18,6 +18,7 @@ void main() {
     expect(NotebookFields.syncState, 6);
     expect(NotebookFields.ownerId, 7);
     expect(NotebookFields.clockFlags, 8);
+    expect(NotebookFields.version, 9);
 
     expect(PageFields.id, 0);
     expect(PageFields.notebookId, 1);
@@ -34,6 +35,8 @@ void main() {
     expect(PageFields.ownerId, 12);
     expect(PageFields.deletedAt, 13);
     expect(PageFields.clockFlags, 14);
+    expect(PageFields.version, 15);
+    expect(PageFields.updatedAt, 16);
 
     expect(StrokeFields.id, 0);
     expect(StrokeFields.pageId, 1);

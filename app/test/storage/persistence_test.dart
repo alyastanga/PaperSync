@@ -172,6 +172,26 @@ void main() {
     harness.delete();
   });
 
+  test('sign-out keeps the signed-in account after a restart', () async {
+    final harness = await _Harness.open();
+    await harness.store.createNotebook(
+      _notebook(name: 'Mine'),
+      ownerId: 'user-a',
+    );
+    await harness.store.rememberHomeUser('user-a');
+    await harness.store.adoptUser(null);
+    expect(harness.store.current.single.name, 'Mine');
+    await harness.close();
+
+    final again = await _Harness.open(
+      directory: harness.directory,
+      keys: harness.keys,
+    );
+    expect(again.store.current.single.name, 'Mine');
+    await again.close();
+    harness.delete();
+  });
+
   test('another owner is hidden until that user opens the boxes', () async {
     final harness = await _Harness.open();
     await harness.store.createNotebook(

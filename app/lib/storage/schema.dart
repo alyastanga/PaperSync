@@ -44,6 +44,18 @@ abstract final class MetaKeys {
   static const schemaVersion = 'schemaVersion';
   static const installId = 'installId';
   static const seeded = 'seeded';
+  static const syncCursorNotebooks = 'syncCursorNotebooks';
+  static const syncCursorPages = 'syncCursorPages';
+  static const syncCursorStrokes = 'syncCursorStrokes';
+  static const syncQuarantine = 'syncQuarantine';
+  static const tombstoneSyncedAt = 'tombstoneSyncedAt';
+  static const homeUserId = 'homeUserId';
+}
+
+abstract final class SyncTables {
+  static const notebooks = 'notebooks';
+  static const pages = 'pages';
+  static const strokes = 'strokes';
 }
 
 abstract final class CheckpointKeys {
@@ -60,6 +72,7 @@ abstract final class NotebookFields {
   static const syncState = 6;
   static const ownerId = 7;
   static const clockFlags = 8;
+  static const version = 9;
 }
 
 abstract final class PageFields {
@@ -78,6 +91,8 @@ abstract final class PageFields {
   static const ownerId = 12;
   static const deletedAt = 13;
   static const clockFlags = 14;
+  static const version = 15;
+  static const updatedAt = 16;
 }
 
 abstract final class StrokeFields {

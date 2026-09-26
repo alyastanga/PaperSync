@@ -16,6 +16,15 @@ flutter pub get
 flutter run
 ```
 
+To back notebooks up, copy `app/env/example.json` to `app/env/dev.json`, fill in the project URL and the anon key, and run:
+
+```bash
+cd app
+flutter run --dart-define-from-file=env/dev.json
+```
+
+Without those two values, sync stays off and notes remain on the phone. The service role key is not part of the app.
+
 ## Storage
 
 On a phone, notebooks are encrypted. The key is created on first launch and kept in the iOS Keychain or the Android Keystore. Android backup is off, so a restore cannot bring the boxes back without that key.
