@@ -30,6 +30,27 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
 
 final syncStatusProvider = StateProvider<SyncStatus>((ref) => const SyncIdle());
 
+/// Copy for the settings and account rows. Screens use this instead of
+/// importing the sync layer.
+String syncRowLabel(SyncStatus status) {
+  return switch (status) {
+    SyncSyncing() => 'Syncing',
+    SyncFailed() => "Couldn't back up",
+    SyncIdle() => 'All pages saved',
+  };
+}
+
+bool syncDidFail(SyncStatus status) => status is SyncFailed;
+
+/// The account card's second line. No sync clock is stored.
+String lastSyncLine(SyncStatus status) {
+  return switch (status) {
+    SyncSyncing() => 'Syncing now',
+    SyncFailed() => "Last sync: didn't finish",
+    SyncIdle() => 'Last sync: not recorded',
+  };
+}
+
 final backupReadyProvider = Provider<bool>((ref) {
   return ref.watch(paperSyncAuthProvider) is! DisabledAuth;
 });

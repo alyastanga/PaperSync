@@ -17,6 +17,7 @@ import '../widgets/paper_svg.dart';
 import 'device_screen.dart';
 import 'notebook_pages_screen.dart';
 import 'search_screen.dart';
+import 'settings_screen.dart';
 import 'sync_issue_screen.dart';
 
 class LibraryScreen extends ConsumerWidget {
@@ -78,16 +79,26 @@ class LibraryScreen extends ConsumerWidget {
                 : Column(
                     children: [
                       const SizedBox(height: PaperTokens.space12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: PaperTokens.space24,
-                          ),
-                          child: TextButton(
-                            onPressed: () =>
-                                _createNotebook(context, controller),
-                            child: const Text('New notebook'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: PaperTokens.space16,
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              TextButton(
+                                onPressed: () => _openSettings(context),
+                                child: const Text('Settings'),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    _createNotebook(context, controller),
+                                child: const Text('New notebook'),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -154,6 +165,11 @@ class LibraryScreen extends ConsumerWidget {
     );
   }
 
+  void _openSettings(BuildContext context) {
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
+  }
+
   void _openDevice(BuildContext context) {
     Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => const DeviceScreen()));
@@ -204,6 +220,16 @@ class _EmptyLibrary extends StatelessWidget {
             PrimaryButton(
               label: bonded ? 'New notebook' : 'Pair your pen',
               onPressed: onPrimary,
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SettingsScreen(),
+                  ),
+                );
+              },
+              child: const Text('Settings'),
             ),
           ],
         ),

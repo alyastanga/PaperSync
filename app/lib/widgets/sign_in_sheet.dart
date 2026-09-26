@@ -14,6 +14,7 @@ Future<void> showSignInSheet(
   BuildContext context, {
   required Future<void> Function(String email) sendCode,
   required Future<void> Function(String email, String code) verifyCode,
+  String initialEmail = '',
 }) {
   final colors = Theme.of(context).extension<AppColors>()!;
   return showModalBottomSheet<void>(
@@ -26,23 +27,34 @@ Future<void> showSignInSheet(
       ),
     ),
     builder: (context) {
-      return _SignInSheet(sendCode: sendCode, verifyCode: verifyCode);
+      return _SignInSheet(
+        sendCode: sendCode,
+        verifyCode: verifyCode,
+        initialEmail: initialEmail,
+      );
     },
   );
 }
 
 class _SignInSheet extends StatefulWidget {
-  const _SignInSheet({required this.sendCode, required this.verifyCode});
+  const _SignInSheet({
+    required this.sendCode,
+    required this.verifyCode,
+    this.initialEmail = '',
+  });
 
   final Future<void> Function(String email) sendCode;
   final Future<void> Function(String email, String code) verifyCode;
+  final String initialEmail;
 
   @override
   State<_SignInSheet> createState() => _SignInSheetState();
 }
 
 class _SignInSheetState extends State<_SignInSheet> {
-  final TextEditingController _emailController = TextEditingController();
+  late final TextEditingController _emailController = TextEditingController(
+    text: widget.initialEmail,
+  );
   final TextEditingController _code = TextEditingController();
   Timer? _resend;
   var _secondsLeft = 0;

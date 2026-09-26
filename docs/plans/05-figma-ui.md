@@ -4,22 +4,22 @@ overview: 'Rebuild the app screens from the PaperSync Figma file (node 2003:129)
 todos:
   - id: p5-access
     content: 'Read the file through the Figma REST API with FIGMA_TOKEN (read-only scope); cache raw JSON and renders in a gitignored folder; never log or commit the token'
-    status: pending
+    status: completed
   - id: p5-inventory
     content: 'Map every Figma frame to an app screen or state, and flag any design that needs logic not covered by Phases 1-4'
-    status: pending
+    status: completed
   - id: p5-tokens
     content: 'Generate app/lib/theme/tokens.dart (colors light and dark, type scale, spacing, radii, elevation) and rebuild AppColors and AppTheme on it; bundle the design fonts as assets'
-    status: pending
+    status: completed
   - id: p5-assets
     content: 'Export icons and logos from Figma as SVG or PNG at 1x/2x/3x into app/assets/ and register them in pubspec.yaml'
-    status: pending
+    status: completed
   - id: p5-widgets-screens
     content: 'Rebuild shared widgets, then each screen and state to match Figma, wired only to the AppController API and the sync and link providers'
-    status: pending
+    status: completed
   - id: p5-verify
     content: 'Golden tests per screen in light and dark at the Figma frame size, side-by-side check against Figma renders, accessibility checks'
-    status: pending
+    status: completed
 isProject: false
 ---
 # Phase 5: UI from Figma

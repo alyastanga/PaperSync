@@ -14,6 +14,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.onStatusTap,
     this.overflow,
     this.expandTitle = false,
+    this.height = PaperTokens.barHeight,
   });
 
   final Widget? leading;
@@ -22,9 +23,10 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onStatusTap;
   final Widget? overflow;
   final bool expandTitle;
+  final double height;
 
   @override
-  Size get preferredSize => const Size.fromHeight(PaperTokens.barHeight);
+  Size get preferredSize => Size.fromHeight(height);
 
   @override
   Widget build(BuildContext context) {
@@ -39,17 +41,36 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
       ],
     );
 
+    final balanced = link == null && overflow == null && !expandTitle;
     return Material(
       color: colors.canvas,
       child: SafeArea(
         bottom: false,
         child: SizedBox(
-          height: PaperTokens.barHeight,
+          height: height,
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: PaperTokens.space12,
             ),
-            child: Row(
+            child: balanced
+                ? Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          leading ?? const SizedBox.shrink(),
+                          const Spacer(),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: PaperTokens.minTap + PaperTokens.space24,
+                        ),
+                        child: title,
+                      ),
+                    ],
+                  )
+                : Row(
               children: [
                 Flexible(
                   child: FittedBox(

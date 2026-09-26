@@ -14,9 +14,11 @@ import 'platform/secure_session_storage.dart';
 import 'platform/supabase_auth.dart';
 import 'platform/supabase_remote.dart';
 import 'screens/library_screen.dart';
+import 'screens/welcome_screen.dart';
 import 'state/app_controller.dart';
 import 'state/cloud.dart';
 import 'state/notebook_store_provider.dart';
+import 'state/ui_preferences.dart';
 import 'storage/checkpoint_scheduler.dart';
 import 'storage/key_store.dart';
 import 'storage/notebook_store.dart';
@@ -80,17 +82,18 @@ Future<StorageSession> _openStorage() async {
   }
 }
 
-class PaperSyncApp extends StatelessWidget {
+class PaperSyncApp extends ConsumerWidget {
   const PaperSyncApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(uiPreferencesProvider).themeMode;
     return MaterialApp(
       title: 'PaperSync',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: mode,
       home: const _Home(),
     );
   }
@@ -129,6 +132,14 @@ class _HomeState extends ConsumerState<_Home> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     ref.watch(syncCoordinatorProvider);
+    final inLibrary = ref.watch(uiPreferencesProvider).inLibrary;
+    if (!inLibrary) {
+      return WelcomeScreen(
+        onContinue: () {
+          ref.read(uiPreferencesProvider.notifier).enterLibrary();
+        },
+      );
+    }
     return const LibraryScreen();
   }
 }

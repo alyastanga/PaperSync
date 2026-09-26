@@ -107,6 +107,161 @@ class PrimaryButton extends StatelessWidget {
   }
 }
 
+class SecondaryButton extends StatelessWidget {
+  const SecondaryButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colors.ink,
+          backgroundColor: colors.page,
+          textStyle: PaperType.cardTitle(colors.ink),
+          minimumSize: const Size(double.infinity, PaperTokens.minTap),
+          side: BorderSide(color: colors.ink, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(PaperTokens.radiusButton),
+          ),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+}
+
+class PaperField extends StatelessWidget {
+  const PaperField({
+    super.key,
+    required this.label,
+    required this.hint,
+    required this.controller,
+    this.obscure = false,
+    this.suffix,
+    this.error,
+    this.keyboardType,
+    this.onChanged,
+  });
+
+  final String label;
+  final String hint;
+  final TextEditingController controller;
+  final bool obscure;
+  final Widget? suffix;
+  final String? error;
+  final TextInputType? keyboardType;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: PaperTokens.space8),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          keyboardType: keyboardType,
+          autocorrect: false,
+          onChanged: onChanged,
+          style: Theme.of(context).textTheme.bodyMedium,
+          decoration: InputDecoration(
+            hintText: hint,
+            errorText: error,
+            errorStyle: PaperType.caption(colors.danger),
+            suffixIcon: suffix,
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: PaperTokens.minTap,
+              minHeight: PaperTokens.minTap,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class SettingsTile extends StatelessWidget {
+  const SettingsTile({
+    super.key,
+    required this.title,
+    this.onPressed,
+    this.subtitle,
+    this.trailing,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: PaperTokens.minTap),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: PaperTokens.space14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.titleSmall),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: PaperTokens.space4),
+                      Text(
+                        subtitle!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: PaperTokens.space12),
+                trailing!,
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SectionLabel extends StatelessWidget {
+  const SectionLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: PaperTokens.space12,
+        bottom: PaperTokens.space4,
+      ),
+      child: Text(text, style: PaperType.metaStrong(context.colors.meta)),
+    );
+  }
+}
+
 class NoticeBanner extends StatelessWidget {
   const NoticeBanner({
     super.key,

@@ -16,7 +16,7 @@ todos:
     status: pending
   - id: phase-5
     content: 'Phase 5 Figma UI: read the design via REST API with FIGMA_TOKEN, generate theme tokens and assets, rebuild widgets and screens, golden tests (05-figma-ui.md)'
-    status: pending
+    status: completed
 isProject: false
 ---
 # PaperSync software plan: index

@@ -3,17 +3,25 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:papersync/ble/simulated_pen_transport.dart';
+import 'package:papersync/screens/account_sync_screen.dart';
+import 'package:papersync/screens/comic_strip_screen.dart';
+import 'package:papersync/screens/create_account_screen.dart';
 import 'package:papersync/screens/device_screen.dart';
 import 'package:papersync/screens/library_screen.dart';
 import 'package:papersync/screens/live_capture_screen.dart';
 import 'package:papersync/screens/notebook_pages_screen.dart';
 import 'package:papersync/screens/page_editor_screen.dart';
+import 'package:papersync/screens/reset_password_screen.dart';
 import 'package:papersync/screens/search_screen.dart';
+import 'package:papersync/screens/settings_screen.dart';
+import 'package:papersync/screens/sign_in_screen.dart';
 import 'package:papersync/screens/sync_issue_screen.dart';
+import 'package:papersync/screens/welcome_screen.dart';
 import 'package:papersync/state/app_controller.dart';
 import 'package:papersync/state/cloud.dart';
 import 'package:papersync/state/notebook_store_provider.dart';
 import 'package:papersync/state/pen_transport_provider.dart';
+import 'package:papersync/state/ui_preferences.dart';
 import 'package:papersync/storage/schema.dart';
 import 'package:papersync/sync/auth.dart';
 import 'package:papersync/sync/failure.dart';
@@ -97,6 +105,18 @@ void main() {
       libraryModel(),
       syncFailed: true,
     ),
+    _Case('welcome', WelcomeScreen(onContinue: () {}), emptyModel()),
+    _Case('sign_in_form', const SignInScreen(), emptyModel()),
+    _Case('create_account', const CreateAccountScreen(), emptyModel()),
+    _Case('reset_password', const ResetPasswordScreen(), emptyModel()),
+    _Case('settings', const SettingsScreen(), libraryModel(), profile: true),
+    _Case(
+      'account_sync',
+      const AccountSyncScreen(),
+      libraryModel(),
+      profile: true,
+    ),
+    _Case('comic_strip', const ComicStripScreen(), emptyModel()),
   ];
 
   for (final item in cases) {
@@ -122,6 +142,7 @@ class _Case {
     this.syncFailed = false,
     this.query,
     this.signIn = false,
+    this.profile = false,
   });
 
   final String name;
@@ -131,6 +152,7 @@ class _Case {
   final bool syncFailed;
   final String? query;
   final bool signIn;
+  final bool profile;
 }
 
 Future<void> _show(WidgetTester tester, _Case item, ThemeMode mode) async {
@@ -157,6 +179,7 @@ Future<void> _show(WidgetTester tester, _Case item, ThemeMode mode) async {
           syncStatusProvider.overrideWith((ref) => const SyncFailed(Offline())),
         if (item.signIn)
           paperSyncAuthProvider.overrideWithValue(const _OpenAuth()),
+        if (item.profile) uiPreferencesProvider.overrideWith(_PeterPrefs.new),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -176,6 +199,16 @@ Future<void> _show(WidgetTester tester, _Case item, ThemeMode mode) async {
   if (item.signIn) {
     await tester.tap(find.text('Back up notebooks'));
     await tester.pumpAndSettle();
+  }
+}
+
+class _PeterPrefs extends UiPreferencesController {
+  @override
+  UiPreferences build() {
+    return const UiPreferences(
+      displayName: 'Peter',
+      email: 'peter@example.com',
+    );
   }
 }
 

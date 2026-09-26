@@ -64,7 +64,13 @@ abstract final class PaperTokens {
   static const elevation = 0.0;
   static const minTap = 48.0;
   static const barHeight = 60.0;
+  static const formBarHeight = 56.0;
   static const liveHeaderHeight = 64.0;
+  static const avatarSize = 64.0;
+
+  /// Welcome frame `2003:172` paints variable `2003:151` as black. Every other
+  /// screen resolves that same variable to [lightCanvas]. The render is black.
+  static const welcomeBackground = Color(0xFF000000);
   static const frameWidth = 390.0;
   static const frameHeight = 844.0;
 
@@ -90,6 +96,10 @@ abstract final class PaperTokens {
   static const toolHeight = 13.3125 / 11;
   static const displaySize = 28.0;
   static const displayHeight = 33.8863639831543 / 28;
+  static const avatarFontSize = 24.0;
+  static const avatarFontHeight = 29.045454025268555 / 24;
+  static const captionSize = 13.0;
+  static const captionHeight = 15.732954025268555 / 13;
 }
 
 /// Type scale from the Figma text styles. Sizes are the file's; weights are
@@ -172,6 +182,24 @@ abstract final class PaperType {
     fontSize: PaperTokens.metaSize,
     height: PaperTokens.metaHeight,
     fontWeight: FontWeight.w500,
+    letterSpacing: 0,
+    color: color,
+  );
+
+  static TextStyle avatar(Color color) => TextStyle(
+    fontFamily: PaperTokens.fontFamily,
+    fontSize: PaperTokens.avatarFontSize,
+    height: PaperTokens.avatarFontHeight,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+    color: color,
+  );
+
+  static TextStyle caption(Color color) => TextStyle(
+    fontFamily: PaperTokens.fontFamily,
+    fontSize: PaperTokens.captionSize,
+    height: PaperTokens.captionHeight,
+    fontWeight: FontWeight.w400,
     letterSpacing: 0,
     color: color,
   );

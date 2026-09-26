@@ -72,6 +72,18 @@ void main() {
       _contrast(PaperTokens.lightOnAccent, PaperTokens.lightReconnecting),
       greaterThanOrEqualTo(4.5),
     );
+    expect(
+      _contrast(PaperTokens.lightPage, PaperTokens.welcomeBackground),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      _contrast(PaperTokens.darkMeta, PaperTokens.welcomeBackground),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      _contrast(PaperTokens.lightOnAccent, PaperTokens.lightInk),
+      greaterThanOrEqualTo(4.5),
+    );
   });
 
   testWidgets('library controls have semantics labels', (tester) async {

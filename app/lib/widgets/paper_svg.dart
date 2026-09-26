@@ -6,11 +6,11 @@ import '../theme/tokens.dart';
 
 /// Illustrations exported from the Figma frames.
 class PaperSvg extends StatelessWidget {
-  const PaperSvg.inkPreview({super.key})
+  const PaperSvg.inkPreview({super.key, bool adapt = true})
     : _asset = 'assets/images/ink-preview.svg',
       _size = const Size(250, 158),
       _label = 'PaperSync ink preview',
-      _mapChrome = true;
+      _mapChrome = adapt;
 
   const PaperSvg.pen({super.key})
     : _asset = 'assets/images/pen-glyph.svg',

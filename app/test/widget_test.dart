@@ -11,6 +11,15 @@ import 'package:papersync/state/notebook_store_provider.dart';
 import 'package:papersync/storage/schema.dart';
 import 'package:papersync/widgets/ink_page.dart';
 
+Future<void> _enterLibrary(WidgetTester tester) async {
+  await tester.pumpAndSettle();
+  final skip = find.text('Continue without account');
+  if (skip.evaluate().isNotEmpty) {
+    await tester.tap(skip);
+    await tester.pumpAndSettle();
+  }
+}
+
 void main() {
   test('status copy names the link in plain language', () {
     final saving = PenLink.paired();
@@ -49,7 +58,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(const ProviderScope(child: PaperSyncApp()));
-    await tester.pumpAndSettle();
+    await _enterLibrary(tester);
 
     expect(find.text('Library'), findsOneWidget);
     expect(find.text('Saving'), findsOneWidget);
@@ -101,7 +110,7 @@ void main() {
         child: const PaperSyncApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    await _enterLibrary(tester);
 
     expect(find.text('Pair your pen'), findsOneWidget);
     expect(find.text('New notebook'), findsNothing);
@@ -127,13 +136,13 @@ void main() {
         child: const PaperSyncApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    await _enterLibrary(tester);
     expect(find.text(storageQuarantineNotice), findsOneWidget);
   });
 
   testWidgets('disconnect and forget regroup the pen controls', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: PaperSyncApp()));
-    await tester.pumpAndSettle();
+    await _enterLibrary(tester);
 
     await tester.tap(find.byKey(const Key('status-pill')));
     await tester.pumpAndSettle();
