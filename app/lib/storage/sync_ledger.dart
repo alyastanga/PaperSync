@@ -110,6 +110,55 @@ class StrokeSyncRow {
   bool get isDeleted => deletedAt != null;
 }
 
+/// Where a pull left off.
+///
+/// [updatedAt] alone is not enough. One upsert is one database transaction,
+/// and the server stamps every row in it with the same `updated_at`. A page
+/// can end in the middle of that batch. [id] is the last row kept from it.
+class SyncCursor {
+  const SyncCursor({required this.updatedAt, this.id});
+
+  final DateTime updatedAt;
+
+  /// Null when the cursor was saved before ids were stored. The next pull
+  /// re-reads every row at [updatedAt] so the rest of that batch is not lost.
+  final String? id;
+
+  String encode() {
+    final time = updatedAt.toUtc().toIso8601String();
+    final rowId = id;
+    if (rowId == null || rowId.isEmpty) return time;
+    return '$time|$rowId';
+  }
+
+  static SyncCursor? decode(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    final pipe = raw.lastIndexOf('|');
+    if (pipe <= 0) {
+      final time = DateTime.tryParse(raw);
+      if (time == null) return null;
+      return SyncCursor(updatedAt: time.toUtc());
+    }
+    final time = DateTime.tryParse(raw.substring(0, pipe));
+    if (time == null) return null;
+    final rowId = raw.substring(pipe + 1);
+    return SyncCursor(
+      updatedAt: time.toUtc(),
+      id: rowId.isEmpty ? null : rowId,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SyncCursor &&
+        other.updatedAt == updatedAt &&
+        other.id == id;
+  }
+
+  @override
+  int get hashCode => Object.hash(updatedAt, id);
+}
+
 /// Reads and writes the records sync is allowed to touch.
 ///
 /// Pending rows stay on the same record as the ink. There is no second queue.
@@ -150,9 +199,9 @@ abstract class SyncLedger {
 
   Future<void> applyStroke(StrokeSyncRow row);
 
-  Future<DateTime?> cursorFor(String table);
+  Future<SyncCursor?> cursorFor(String table);
 
-  Future<void> setCursor(String table, DateTime cursor);
+  Future<void> setCursor(String table, SyncCursor cursor);
 
   Future<void> quarantine(String table, String id);
 

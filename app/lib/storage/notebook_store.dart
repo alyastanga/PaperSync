@@ -70,7 +70,7 @@ class MemoryNotebookStore implements NotebookStore {
   /// Rows whose owner is neither null nor [userId] stay out of [current].
   set currentUserId(String? userId) => _currentUserId = userId;
 
-  final Map<String, DateTime> _cursors = {};
+  final Map<String, SyncCursor> _cursors = {};
   final Set<String> _quarantine = {};
   final Map<String, DateTime> _tombstoneSyncedAt = {};
 
@@ -506,10 +506,10 @@ class MemoryNotebookStore implements NotebookStore {
   }
 
   @override
-  Future<DateTime?> cursorFor(String table) async => _cursors[table];
+  Future<SyncCursor?> cursorFor(String table) async => _cursors[table];
 
   @override
-  Future<void> setCursor(String table, DateTime cursor) async {
+  Future<void> setCursor(String table, SyncCursor cursor) async {
     _cursors[table] = cursor;
   }
 
