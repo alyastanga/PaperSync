@@ -168,6 +168,7 @@ class AppController extends Notifier<AppModel> {
       if (epoch != _epoch) return;
       _onBattery(level);
     });
+    StreamSubscription<List<Notebook>>? notebooksSub;
     ref.onDispose(() {
       _active = false;
       _epoch += 1;
@@ -175,6 +176,7 @@ class AppController extends Notifier<AppModel> {
       unawaited(notes.cancel());
       unawaited(status.cancel());
       unawaited(battery.cancel());
+      unawaited(notebooksSub?.cancel());
       unawaited(_scanSub?.cancel());
       unawaited(transport.dispose());
       if (_ownsStore) unawaited(_store.close());
@@ -194,7 +196,113 @@ class AppController extends Notifier<AppModel> {
     if (base.link.permissionGranted && !base.link.bonded) {
       _listenScan();
     }
+    // Saved notebooks live in the store. Pulls and account switches update
+    // that store without going through this controller, so the library has
+    // to follow it. An open stroke and a drag still exist only here.
+    notebooksSub = _store.watchNotebooks().listen((notebooks) {
+      if (epoch != _epoch || !_active) return;
+      _projectNotebooks(notebooks);
+    }, onError: (Object _) {});
     return base.copyWith(notebooks: _store.current);
+  }
+
+  void _projectNotebooks(List<Notebook> incoming) {
+    state = state.copyWith(notebooks: _overlaySessionEdits(incoming));
+  }
+
+  /// Keeps ink that has not been written yet on top of a store snapshot.
+  List<Notebook> _overlaySessionEdits(List<Notebook> incoming) {
+    final open = _openStrokeSnapshot();
+    final moved = _dirtyStrokeSnapshots();
+    if (open == null && moved.isEmpty) return incoming;
+    final livePageId = open?.pageId;
+    var pageKept = livePageId == null;
+    final notebooks = <Notebook>[];
+    for (final notebook in incoming) {
+      final pages = <NotebookPage>[];
+      var changed = false;
+      for (final page in notebook.pages) {
+        if (page.id == livePageId) pageKept = true;
+        final strokes = _overlayStrokes(
+          page,
+          open: page.id == livePageId ? open?.stroke : null,
+          moved: moved,
+        );
+        if (identical(strokes, page.strokes)) {
+          pages.add(page);
+        } else {
+          changed = true;
+          pages.add(page.copyWith(strokes: strokes));
+        }
+      }
+      notebooks.add(
+        changed
+            ? notebook.copyWith(pages: pages, updatedAt: notebook.updatedAt)
+            : notebook,
+      );
+    }
+    if (pageKept || open == null) return notebooks;
+    final localPage = state.page(open.pageId);
+    if (localPage == null) return notebooks;
+    return [
+      for (final notebook in notebooks)
+        if (notebook.id != localPage.notebookId)
+          notebook
+        else
+          notebook.copyWith(
+            pages: [...notebook.pages, localPage],
+            updatedAt: notebook.updatedAt,
+          ),
+    ];
+  }
+
+  _OpenStroke? _openStrokeSnapshot() {
+    if (!_strokeOpen) return null;
+    final pageId = state.livePageId;
+    final page = pageId == null ? null : state.page(pageId);
+    if (page == null || page.strokes.isEmpty) return null;
+    return _OpenStroke(page.id, page.strokes.last);
+  }
+
+  Map<String, Stroke> _dirtyStrokeSnapshots() {
+    if (_dirtyMoves.isEmpty) return const {};
+    final moved = <String, Stroke>{};
+    for (final entry in _dirtyMoves.entries) {
+      final page = state.page(entry.value);
+      if (page == null) continue;
+      for (final stroke in page.strokes) {
+        if (stroke.id == entry.key) moved[stroke.id] = stroke;
+      }
+    }
+    return moved;
+  }
+
+  List<Stroke> _overlayStrokes(
+    NotebookPage page, {
+    required Stroke? open,
+    required Map<String, Stroke> moved,
+  }) {
+    if (open == null && moved.isEmpty) return page.strokes;
+    final next = <Stroke>[];
+    var changed = false;
+    for (final stroke in page.strokes) {
+      if (open != null && stroke.id == open.id) {
+        changed = true;
+        continue;
+      }
+      final replacement = moved[stroke.id];
+      if (replacement == null) {
+        next.add(stroke);
+      } else {
+        next.add(replacement);
+        changed = true;
+      }
+    }
+    if (open != null) {
+      next.add(open);
+      changed = true;
+    }
+    return changed ? next : page.strokes;
   }
 
   /// Copies the open stroke into the checkpoint box and flushes it.
@@ -822,4 +930,11 @@ class AppController extends Notifier<AppModel> {
       ],
     );
   }
+}
+
+class _OpenStroke {
+  const _OpenStroke(this.pageId, this.stroke);
+
+  final String pageId;
+  final Stroke stroke;
 }
