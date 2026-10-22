@@ -7,6 +7,8 @@ import '../domain/ink.dart';
 import '../storage/schema.dart';
 import '../storage/sync_ledger.dart';
 import '../sync/failure.dart';
+import '../sync/ids.dart';
+import '../sync/keyset.dart';
 import '../sync/remote.dart';
 
 class SupabaseNotebookRemote implements NotebookRemote {
@@ -74,9 +76,10 @@ class SupabaseNotebookRemote implements NotebookRemote {
   @override
   Future<List<NotebookSyncRow>> pullNotebooks({
     DateTime? after,
+    String? afterId,
     int limit = 500,
   }) async {
-    final rows = await _pull(SyncTables.notebooks, after, limit);
+    final rows = await _pull(SyncTables.notebooks, after, afterId, limit);
     return [
       for (final row in rows)
         NotebookSyncRow(
@@ -96,9 +99,10 @@ class SupabaseNotebookRemote implements NotebookRemote {
   @override
   Future<List<PageSyncRow>> pullPages({
     DateTime? after,
+    String? afterId,
     int limit = 500,
   }) async {
-    final rows = await _pull(SyncTables.pages, after, limit);
+    final rows = await _pull(SyncTables.pages, after, afterId, limit);
     return [
       for (final row in rows)
         PageSyncRow(
@@ -125,9 +129,10 @@ class SupabaseNotebookRemote implements NotebookRemote {
   @override
   Future<List<StrokeSyncRow>> pullStrokes({
     DateTime? after,
+    String? afterId,
     int limit = 500,
   }) async {
-    final rows = await _pull(SyncTables.strokes, after, limit);
+    final rows = await _pull(SyncTables.strokes, after, afterId, limit);
     return [
       for (final row in rows)
         StrokeSyncRow(
@@ -168,27 +173,51 @@ class SupabaseNotebookRemote implements NotebookRemote {
     }
   }
 
+  /// Matches [isAfterSyncCursor].
+  ///
+  /// Rows that share [after] are read first (`id` greater than [afterId], or
+  /// every row at that time when [afterId] is null). Later times follow.
+  /// `updated_at > cursor` alone drops the rest of a tied batch once a page
+  /// ends on that timestamp.
   Future<List<Map<String, Object?>>> _pull(
     String table,
     DateTime? after,
+    String? afterId,
     int limit,
   ) async {
     try {
-      final query = _client.from(table).select();
-      final filtered = after == null
-          ? query
-          : query.gt('updated_at', after.toUtc().toIso8601String());
-      final rows = await filtered
+      final collected = <Map<String, Object?>>[];
+      if (after != null) {
+        final iso = after.toUtc().toIso8601String();
+        var tied = _client.from(table).select().eq('updated_at', iso);
+        if (afterId != null && isSyncUuid(afterId)) {
+          tied = tied.gt('id', afterId);
+        }
+        final tiedRows = await tied.order('id', ascending: true).limit(limit);
+        collected.addAll(_copyRows(tiedRows));
+        if (collected.length >= limit) return collected;
+      }
+      var later = _client.from(table).select();
+      if (after != null) {
+        later = later.gt('updated_at', after.toUtc().toIso8601String());
+      }
+      final laterRows = await later
           .order('updated_at', ascending: true)
-          .limit(limit);
-      return [
-        for (final row in rows)
-          {for (final entry in row.entries) entry.key: entry.value},
-      ];
+          .order('id', ascending: true)
+          .limit(limit - collected.length);
+      collected.addAll(_copyRows(laterRows));
+      return collected;
     } on Object catch (error) {
       throw _failure(error, table, '');
     }
   }
+}
+
+List<Map<String, Object?>> _copyRows(List<Map<String, dynamic>> rows) {
+  return [
+    for (final row in rows)
+      {for (final entry in row.entries) entry.key: entry.value},
+  ];
 }
 
 SyncFailure _failure(Object error, String table, String id) {

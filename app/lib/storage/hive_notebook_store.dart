@@ -846,16 +846,16 @@ class HiveNotebookStore implements NotebookStore {
   }
 
   @override
-  Future<DateTime?> cursorFor(String table) async {
+  Future<SyncCursor?> cursorFor(String table) async {
     final raw = _metaBox.get(_cursorKey(table));
     if (raw is! String) return null;
-    return DateTime.tryParse(raw);
+    return SyncCursor.decode(raw);
   }
 
   @override
-  Future<void> setCursor(String table, DateTime cursor) {
+  Future<void> setCursor(String table, SyncCursor cursor) {
     return _enqueue(() async {
-      await _metaBox.put(_cursorKey(table), cursor.toUtc().toIso8601String());
+      await _metaBox.put(_cursorKey(table), cursor.encode());
       await _metaBox.flush();
     });
   }
